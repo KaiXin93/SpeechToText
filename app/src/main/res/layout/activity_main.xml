@@ -20,7 +20,7 @@
         android:id="@+id/btn_talk"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Talk" />
+        android:text="说话" />
 
     <TextView
         android:id="@+id/tv_translation"
@@ -32,13 +32,19 @@
         android:id="@+id/btn_translate"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Translate" />
+        android:text="翻译" />
 
     <Button
         android:id="@+id/btn_speak"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Speak" />
+        android:text="发声" />
+
+    <Button
+        android:id="@+id/btn_orc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="orc" />
 
 
 </LinearLayout>

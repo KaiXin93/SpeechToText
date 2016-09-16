@@ -14,19 +14,19 @@
         android:id="@+id/tv_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!" />
+        android:text="识别" />
 
     <Button
         android:id="@+id/btn_talk"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="说话" />
+        android:text="识别" />
 
     <TextView
         android:id="@+id/tv_translation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!" />
+        android:text="翻译" />
 
     <Button
         android:id="@+id/btn_translate"
@@ -46,5 +46,28 @@
         android:layout_height="wrap_content"
         android:text="orc" />
 
+    <TextView
+        android:id="@+id/tv_doAll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="实时翻译" />
+
+    <Button
+        android:id="@+id/btn_doAll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="实时翻译(中文)" />
+
+    <TextView
+        android:id="@+id/tv_doAll_en"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="实时翻译" />
+
+    <Button
+        android:id="@+id/btn_doAll_en"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="实时翻译(英文)" />
 
 </LinearLayout>

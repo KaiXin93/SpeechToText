@@ -14,5 +14,4 @@ public interface MyHttpService {
     @GET(Constants.baseUrl)
     Call<ResultBean> query(@Query("q") String q, @Query("from") String from, @Query("to") String to,
                        @Query("appid") String appid, @Query("salt") int salt, @Query("sign") String sign);
-//    void query(@Path("page") String page, Callback<WelfareBean> response);
 }

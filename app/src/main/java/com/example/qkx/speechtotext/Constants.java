@@ -12,4 +12,5 @@ public class Constants {
     public static final String baseUrl = "http://api.fanyi.baidu.com/api/trans/vip/translate/";
 
     public static final int PHOTO_REQUEST_GALLERY = 0;
+    public static final int PHOTO_REQUSET_CAMERA = 1;
 }

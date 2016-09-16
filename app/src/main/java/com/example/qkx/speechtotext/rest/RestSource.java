@@ -1,7 +1,7 @@
 package com.example.qkx.speechtotext.rest;
 
-import com.example.qkx.speechtotext.BusManager;
 import com.example.qkx.speechtotext.Constants;
+import com.example.qkx.speechtotext.MainActivity;
 import com.example.qkx.speechtotext.model.ResultBean;
 import com.example.qkx.speechtotext.utils.MD5Util;
 
@@ -45,7 +45,6 @@ public class RestSource {
                 .addConverterFactory(GsonConverterFactory.create())
                 .client(client)
                 .build();
-//        retrofit.
         mAPI = retrofit.create(MyHttpService.class);
     }
 
@@ -60,22 +59,34 @@ public class RestSource {
         return mInstance;
     }
 
-    public void query(String q) {
+    public void queryCh(String q, MainActivity.TranslateCallback callback) {
         String salt = "8888";
         String str = Constants.appId + q + salt + Constants.secret;
         String sign = MD5Util.getMD5(str);
-        query(q, "zh", "en", Constants.appId, Integer.valueOf(salt), sign);
+        query(q, "en", "zh", Constants.appId, Integer.valueOf(salt), sign, callback);
     }
 
-    public void query(String q, String from, String to, String appid, int salt, String sign) {
-        Call<ResultBean> call = mAPI.query(q, from, to, appid, salt, sign);
+    public void queryEn(String q, MainActivity.TranslateCallback callback) {
+        String salt = "8888";
+        String str = Constants.appId + q + salt + Constants.secret;
+        String sign = MD5Util.getMD5(str);
+        query(q, "zh", "en", Constants.appId, Integer.valueOf(salt), sign, callback);
+    }
+
+    public void queryEn(String q) {
+        queryEn(q, null);
+    }
+
+    public void query(String q, String from, String to, String appId, int salt, String sign,
+                      final MainActivity.TranslateCallback callback) {
+        Call<ResultBean> call = mAPI.query(q, from, to, appId, salt, sign);
 
         call.enqueue(new Callback<ResultBean>() {
             @Override
             public void onResponse(Call<ResultBean> call, Response<ResultBean> response) {
                 ResultBean resultBean = response.body();
-                if (null != resultBean) {
-                    BusManager.getUiBus().post(resultBean);
+                if (null != resultBean && null != callback) {
+                    callback.onProcessResult(resultBean);
                 }
             }
 
@@ -85,18 +96,6 @@ public class RestSource {
                 t.printStackTrace();
             }
 
-//            @Override
-//            public void onResponse(Call<WelfareBean> call, Response<WelfareBean> response) {
-//                WelfareBean bean = response.body();
-//                if (bean != null) {
-//                    BusManager.getUiBus().post(bean);
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(Call<WelfareBean> call, Throwable t) {
-//
-//            }
         });
     }
 

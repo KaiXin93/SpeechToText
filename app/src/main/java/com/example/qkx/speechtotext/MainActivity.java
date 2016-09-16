@@ -5,8 +5,6 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,20 +28,28 @@ import org.json.JSONTokener;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     protected static final int RESULT_SPEECH = 1;
 
     private RestSource mRestSource;
 
-    private TextView tvText;
-    private Button btnTalk;
+    @Bind(R.id.tv_text)
+    TextView tvText;
 
-    private TextView tvTranslation;
-    private Button btnTranslate;
+    @Bind(R.id.tv_translation)
+    TextView tvTranslation;
 
-    private Button btnSpeak;
-    private Button btnOrc;
+    @Bind(R.id.tv_doAll)
+    TextView tvDoAll;
+
+    @Bind(R.id.tv_doAll_en)
+    TextView tvDoAllEn;
+
 
     private StringBuffer buffer = new StringBuffer();
     /**
@@ -62,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         initView();
+
+        ButterKnife.bind(this);
     }
 
     private void initView() {
@@ -69,31 +77,8 @@ public class MainActivity extends AppCompatActivity {
         mIat = SpeechRecognizer.createRecognizer(MainActivity.this, mInitListener);
 
         tvText = (TextView) findViewById(R.id.tv_text);
-        btnTalk = (Button) findViewById(R.id.btn_talk);
-
         tvTranslation = (TextView) findViewById(R.id.tv_translation);
-        btnTranslate = (Button) findViewById(R.id.btn_translate);
 
-        btnSpeak = (Button) findViewById(R.id.btn_speak);
-
-        btnTalk.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                speechToText();
-            }
-        });
-        btnTranslate.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                translate();
-            }
-        });
-        btnSpeak.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                speak();
-            }
-        });
 
         mToast = Toast.makeText(MainActivity.this, "", Toast.LENGTH_SHORT);
 
@@ -132,19 +117,21 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        btnOrc = (Button) findViewById(R.id.btn_orc);
-        btnOrc.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, ORCActivity.class);
-                startActivity(intent);
-            }
-        });
     }
 
-    private void speak() {
-        String str = tvTranslation.getText().toString();
+    @OnClick(R.id.btn_orc)
+    void startOrc() {
+        Intent intent = new Intent(MainActivity.this, ORCActivity.class);
+        startActivity(intent);
+    }
 
+    @OnClick(R.id.btn_speak)
+    void doSpeak() {
+        String str = tvTranslation.getText().toString();
+        speak(str);
+    }
+
+    private void speak(String str) {
         //1.创建 SpeechSynthesizer 对象, 第二个参数:本地合成时传 InitListener
         SpeechSynthesizer mTts = SpeechSynthesizer.createSynthesizer(this, null);
         //2.合成参数设置,详见《MSC Reference Manual》SpeechSynthesizer 类
@@ -162,10 +149,82 @@ public class MainActivity extends AppCompatActivity {
         mTts.startSpeaking(str, mSynListener);
     }
 
-    private void translate() {
+    @OnClick(R.id.btn_translate)
+    void doTranslate() {
         String q = tvText.getText().toString();
+        translateEn(q, new TranslateCallback() {
+            @Override
+            public void onProcessResult(ResultBean resultBean) {
+                System.out.println("onProcessResultBean!");
+                String res = resultBean.trans_result.get(0).dst;
+                tvTranslation.setText(res);
+            }
+        });
+    }
+
+    private void translateEn(String q, TranslateCallback callback) {
+//        String q = tvText.getText().toString();
 //        String q = "这是一段语音";
-        mRestSource.query(q);
+        mRestSource.queryEn(q, callback);
+    }
+
+    private void translateCh(String q, TranslateCallback callback) {
+        mRestSource.queryCh(q, callback);
+    }
+
+    int ret = 0; //函数返回值
+
+    @OnClick(R.id.btn_talk)
+    void talk() {
+        speechToTextCh(new RetCallback() {
+            @Override
+            public void onProcessResult(String result) {
+                tvText.setText(buffer.toString());
+            }
+        });
+    }
+
+    @OnClick(R.id.btn_doAll)
+    void doAll() {
+        speechToTextCh(new RetCallback() {
+            @Override
+            public void onProcessResult(String result) {
+                tvDoAll.setText(result);
+
+                translateEn(result, new TranslateCallback() {
+                    @Override
+                    public void onProcessResult(ResultBean resultBean) {
+                        String origin = tvDoAll.getText().toString();
+                        String res = resultBean.trans_result.get(0).dst;
+                        tvDoAll.setText(origin + '\n' + res);
+
+                        speak(res);
+                    }
+                });
+
+            }
+        });
+    }
+
+    @OnClick(R.id.btn_doAll_en)
+    void doAllEn() {
+        speechToTextEn(new RetCallback() {
+            @Override
+            public void onProcessResult(String result) {
+                tvDoAllEn.setText(result);
+
+                translateCh(result, new TranslateCallback() {
+                    @Override
+                    public void onProcessResult(ResultBean resultBean) {
+                        String origin = tvDoAllEn.getText().toString();
+                        String res = resultBean.trans_result.get(0).dst;
+                        tvDoAllEn.setText(origin + '\n' + res);
+
+                        speak(res);
+                    }
+                });
+            }
+        });
     }
 
     @Subscribe
@@ -175,12 +234,20 @@ public class MainActivity extends AppCompatActivity {
         tvTranslation.setText(res);
     }
 
-    int ret = 0; //函数返回值
+    private void speechToTextEn(RetCallback callback) {
+        speechToTextNormal(callback, "en_us");
+    }
 
-    private void speechToText() {
+    private void speechToTextCh(RetCallback callback) {
+        speechToTextNormal(callback, "zh_cn");
+    }
+
+    private void speechToTextNormal(final RetCallback callback, String language) {
         mIat.setParameter(SpeechConstant.DOMAIN, "iat");
-        mIat.setParameter(SpeechConstant.LANGUAGE, "zh_cn");
-        mIat.setParameter(SpeechConstant.ACCENT, "mandarin");
+        mIat.setParameter(SpeechConstant.LANGUAGE, language);
+        if (language.equals("zh_cn")) {
+            mIat.setParameter(SpeechConstant.ACCENT, "mandarin");
+        }
         mIat.setParameter(SpeechConstant.RESULT_TYPE, "json");
         mIat.setParameter(SpeechConstant.ENGINE_TYPE, mEngineType);
 
@@ -226,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
 
                 buffer.append(ret);
                 if (isLast) {
-                    tvText.setText(buffer.toString());
+                    callback.onProcessResult(buffer.toString());
                     buffer.delete(0, buffer.length());
                 }
             }
@@ -302,5 +369,13 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         BusManager.getUiBus().unregister(this);
         BusManager.getDeufaultBus().unregister(this);
+    }
+
+    interface RetCallback {
+        void onProcessResult(String result);
+    }
+
+    public interface TranslateCallback {
+        void onProcessResult(ResultBean resultBean);
     }
 }

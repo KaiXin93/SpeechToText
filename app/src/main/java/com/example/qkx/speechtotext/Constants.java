@@ -11,6 +11,8 @@ public class Constants {
     public static final String secret = "CW2ZYy9sHjSPzsaadZpe";
     public static final String baseUrl = "http://api.fanyi.baidu.com/api/trans/vip/translate/";
 
-    public static final int PHOTO_REQUEST_GALLERY = 0;
-    public static final int PHOTO_REQUSET_CAMERA = 1;
+    public static final int PHOTO_REQUEST_GALLERY_CROP = 0;
+    public static final int PHOTO_REQUEST_GALLERY = 1;
+    public static final int PHOTO_REQUSET_CAMERA_CROP = 2;
+    public static final int PHOTO_REQUSET_CAMERA = 3;
 }

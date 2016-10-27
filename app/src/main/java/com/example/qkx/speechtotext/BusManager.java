@@ -9,13 +9,13 @@ public class BusManager {
     private static final EventBus UI_BUS = new EventBus();
     private static final EventBus DEUFAULT_BUS = EventBus.getDefault();
 
-    private BusManager(){};
+    private BusManager(){}
 
     public static EventBus getUiBus() {
         return UI_BUS;
     }
 
-    public static EventBus getDeufaultBus() {
+    public static EventBus getDefaultBus() {
         return DEUFAULT_BUS;
     }
 }

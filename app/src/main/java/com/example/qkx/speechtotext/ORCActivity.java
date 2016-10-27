@@ -10,7 +10,6 @@ import android.os.Message;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -58,6 +57,8 @@ public class ORCActivity extends AppCompatActivity {
 
     private MyHandler handler;
     private TessBaseAPI tessBaseAPI;
+
+    private boolean isOrcRunning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -153,15 +154,13 @@ public class ORCActivity extends AppCompatActivity {
         }
     }
 
-    private boolean isRunning = false;
-
     @OnClick(R.id.btn_orc)
     void orcTest() {
-        if (bitmap != null && !isRunning) {
+        if (bitmap != null && !isOrcRunning) {
             Toast.makeText(this, "开始识别!", Toast.LENGTH_SHORT).show();
             btnOrc.setText("正在识别...");
             btnOrc.setClickable(false);
-            isRunning = true;
+            isOrcRunning = true;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -179,11 +178,24 @@ public class ORCActivity extends AppCompatActivity {
         }
     }
 
+    @OnClick(R.id.btn_pick_with_crop)
+    void pickPhotoWithCrop() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        startActivityForResult(intent, Constants.PHOTO_REQUEST_GALLERY_CROP);
+    }
+
     @OnClick(R.id.btn_pick)
     void pickPhoto() {
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
         startActivityForResult(intent, Constants.PHOTO_REQUEST_GALLERY);
+    }
+
+    @OnClick(R.id.btn_camera_with_crop)
+    void takePhotoWithCrop() {
+        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+        startActivityForResult(intent, Constants.PHOTO_REQUSET_CAMERA_CROP);
     }
 
     @OnClick(R.id.btn_camera)
@@ -215,13 +227,13 @@ public class ORCActivity extends AppCompatActivity {
             return;
         }
         switch (requestCode) {
-            case Constants.PHOTO_REQUEST_GALLERY:
+            case Constants.PHOTO_REQUEST_GALLERY_CROP:
                 if (data != null) {
                     Log.d(TAG, "Uri >> " + data.getData().toString());
                     doCrop(data.getData());
                 }
                 break;
-            case Constants.PHOTO_REQUSET_CAMERA:
+            case Constants.PHOTO_REQUSET_CAMERA_CROP:
 //                if (data != null) {
 //                    if (imgFromCamera != null) {
 //                        Log.d(TAG, "uri ---> " + imgFromCamera.toString());
@@ -248,7 +260,7 @@ public class ORCActivity extends AppCompatActivity {
                 break;
             case CROP:
                 if (data != null) {
-                    imgUri = data.getData();
+//                    imgUri = data.getData();
                     if (imgUri != null) {
                         Log.d(TAG, "uri ---> " + imgUri.toString());
                         try {
@@ -260,6 +272,36 @@ public class ORCActivity extends AppCompatActivity {
                     }
                 }
                 break;
+            case Constants.PHOTO_REQUSET_CAMERA:
+                if (data != null) {
+                    Uri uri = data.getData();
+                    if (uri == null) {
+                        Bitmap bitmap = data.getExtras().getParcelable("data");
+                        uri = Uri.parse(MediaStore.Images.Media.insertImage(getContentResolver(),
+                                bitmap, null, null));
+                        Log.d(TAG, "Uri >> " + uri.toString());
+                    }
+                    parseImgUri(uri);
+                }
+                break;
+            case Constants.PHOTO_REQUEST_GALLERY:
+                if (data != null) {
+                    Log.d(TAG, "Uri >> " + data.getData().toString());
+                    parseImgUri(data.getData());
+                }
+                break;
+        }
+    }
+
+    private void parseImgUri(Uri uri) {
+        if (uri == null) return;
+
+        Log.d(TAG, "uri >> " + uri.toString());
+        try {
+            bitmap = ImageUtil.decodeBitmapByRatioSize(this, 800, 800, uri);
+            imageView.setImageBitmap(bitmap);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
@@ -281,7 +323,7 @@ public class ORCActivity extends AppCompatActivity {
                     if (orcActivity != null) {
                         orcActivity.tvResult.setText("识别结果:\n" + res);
                         Toast.makeText(orcActivity, "识别完成!", Toast.LENGTH_SHORT).show();
-                        orcActivity.isRunning = false;
+                        orcActivity.isOrcRunning = false;
                         orcActivity.btnOrc.setText("开始识别");
                         orcActivity.btnOrc.setClickable(true);
                     }

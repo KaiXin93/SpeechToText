@@ -14,6 +14,18 @@
             android:orientation="vertical">
 
             <Button
+                android:id="@+id/btn_pick_with_crop"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="相册(可裁剪)" />
+
+            <Button
+                android:id="@+id/btn_camera_with_crop"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="拍照(可裁剪)" />
+
+            <Button
                 android:id="@+id/btn_pick"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

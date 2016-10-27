@@ -34,9 +34,15 @@ import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+
     protected static final int RESULT_SPEECH = 1;
 
+    private static final int MODE_CH = 0;
+    private static final int MODE_EN = 1;
+
     private RestSource mRestSource;
+
+    private int currentMode = MODE_CH;
 
     @Bind(R.id.tv_text)
     TextView tvText;
@@ -50,6 +56,17 @@ public class MainActivity extends AppCompatActivity {
     @Bind(R.id.tv_doAll_en)
     TextView tvDoAllEn;
 
+    @Bind(R.id.tv_res_syc)
+    TextView tvResSyc;
+
+    @Bind(R.id.tv_translation_syc)
+    TextView tvTranslationSyc;
+
+    @Bind(R.id.tv_res_transfer)
+    TextView tvResTransfer;
+
+    @Bind(R.id.tv_translation_transfer)
+    TextView tvTranslationTransfer;
 
     private StringBuffer buffer = new StringBuffer();
     /**
@@ -67,12 +84,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initView();
+        init();
 
         ButterKnife.bind(this);
     }
 
-    private void initView() {
+    private void init() {
         SpeechUtility.createUtility(MainActivity.this, SpeechConstant.APPID + "=" + Constants.APPID);
         mIat = SpeechRecognizer.createRecognizer(MainActivity.this, mInitListener);
 
@@ -152,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
     @OnClick(R.id.btn_translate)
     void doTranslate() {
         String q = tvText.getText().toString();
+
         translateEn(q, new TranslateCallback() {
             @Override
             public void onProcessResult(ResultBean resultBean) {
@@ -179,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
         speechToTextCh(new RetCallback() {
             @Override
             public void onProcessResult(String result) {
-                tvText.setText(buffer.toString());
+                tvText.setText(result);
             }
         });
     }
@@ -227,11 +245,85 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @OnClick(R.id.btn_speak_syc)
+    void speakSyc() {
+        tvResSyc.setText("");
+        tvTranslationSyc.setText("");
+        speechToTextSyc(new RetCallback() {
+            @Override
+            public void onProcessResult(String result) {
+                String origin = tvResSyc.getText().toString();
+                tvResSyc.setText(origin + result);
+
+                mRestSource.queryEn(result, new TranslateCallback() {
+                    @Override
+                    public void onProcessResult(ResultBean resultBean) {
+                        String or = tvTranslationSyc.getText().toString();
+                        tvTranslationSyc.setText(or + resultBean.trans_result.get(0).dst);
+                    }
+                });
+
+            }
+        }, "zh_cn");
+    }
+
+    @OnClick(R.id.btn_speak_transfer)
+    void speakTransfer() {
+        tvResTransfer.setText("");
+        tvTranslationTransfer.setText("");
+        switch (currentMode) {
+            case MODE_CH:
+                showTip("请说中文!");
+                currentMode = MODE_EN;
+                speechToTextSyc(new RetCallback() {
+                    @Override
+                    public void onProcessResult(String result) {
+                        String origin = tvResTransfer.getText().toString();
+                        tvResTransfer.setText(origin + result);
+
+                        mRestSource.queryEn(result, new TranslateCallback() {
+                            @Override
+                            public void onProcessResult(ResultBean resultBean) {
+                                String or = tvTranslationTransfer.getText().toString();
+                                tvTranslationTransfer.setText(or + resultBean.trans_result.get(0).dst);
+                            }
+                        });
+                    }
+                }, "zh_cn");
+                break;
+            case MODE_EN:
+                showTip("请说英文!");
+                currentMode = MODE_CH;
+                speechToTextSyc(new RetCallback() {
+                    @Override
+                    public void onProcessResult(String result) {
+                        String origin = tvResTransfer.getText().toString();
+                        tvResTransfer.setText(origin + result);
+
+                        mRestSource.queryCh(result, new TranslateCallback() {
+                            @Override
+                            public void onProcessResult(ResultBean resultBean) {
+                                String or = tvTranslationTransfer.getText().toString();
+                                tvTranslationTransfer.setText(or + resultBean.trans_result.get(0).dst);
+                            }
+                        });
+                    }
+                }, "en_us");
+                break;
+        }
+    }
+
     @Subscribe
     public void onEventMainThread(ResultBean bean) {
         System.out.println("onMainThread!");
         String res = bean.trans_result.get(0).dst;
         tvTranslation.setText(res);
+    }
+
+    private void stopListening() {
+        if (mIat == null) return;
+
+        mIat.stopListening();
     }
 
     private void speechToTextEn(RetCallback callback) {
@@ -286,16 +378,95 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResult(com.iflytek.cloud.RecognizerResult recognizerResult, boolean isLast) {
                 String json = recognizerResult.getResultString();
-                Log.d(TAG, "speech result is " + json);
+                Log.d(TAG, "speech result >> " + json);
                 String ret = parseJson(json);
 
-                Log.d(TAG, "outcome is " + ret);
+                Log.d(TAG, "outcome >> " + ret);
 
                 buffer.append(ret);
                 if (isLast) {
                     callback.onProcessResult(buffer.toString());
                     buffer.delete(0, buffer.length());
                 }
+            }
+
+            @Override
+            public void onError(SpeechError speechError) {
+                String dep = speechError.getPlainDescription(true);
+                Log.d(TAG, "speech error is " + dep);
+                showTip(dep);
+            }
+
+            @Override
+            public void onEvent(int i, int i1, int i2, Bundle bundle) {
+
+            }
+        });
+        if (ret != ErrorCode.SUCCESS) {
+            showTip("听写失败,错误码：" + ret);
+        } else {
+            showTip("请开始说话");
+        }
+
+
+    }
+
+    private void speechToTextSyc(final RetCallback callback, String language) {
+        mIat.setParameter(SpeechConstant.DOMAIN, "iat");
+        mIat.setParameter(SpeechConstant.LANGUAGE, language);
+        if (language.equals("zh_cn")) {
+            mIat.setParameter(SpeechConstant.ACCENT, "mandarin");
+        }
+        mIat.setParameter(SpeechConstant.RESULT_TYPE, "json");
+        mIat.setParameter(SpeechConstant.ENGINE_TYPE, mEngineType);
+
+        // 设置语音前端点:静音超时时间，即用户多长时间不说话则当做超时处理
+        mIat.setParameter(SpeechConstant.VAD_BOS, "4000");
+
+        // 设置语音后端点:后端点静音检测时间，即用户停止说话多长时间内即认为不再输入， 自动停止录音
+        mIat.setParameter(SpeechConstant.VAD_EOS, "5000");
+
+        // 设置标点符号,设置为"0"返回结果无标点,设置为"1"返回结果有标点
+        mIat.setParameter(SpeechConstant.ASR_PTT, "1");
+
+        // 设置音频保存路径，保存音频格式支持pcm、wav，设置路径为sd卡请注意WRITE_EXTERNAL_STORAGE权限
+        // 注：AUDIO_FORMAT参数语记需要更新版本才能生效
+        mIat.setParameter(SpeechConstant.AUDIO_FORMAT, "wav");
+        mIat.setParameter(SpeechConstant.ASR_AUDIO_PATH, Environment.getExternalStorageDirectory() + "/msc/iat.wav");
+
+
+        ret = mIat.startListening(new com.iflytek.cloud.RecognizerListener() {
+            @Override
+            public void onVolumeChanged(int i, byte[] bytes) {
+
+            }
+
+            @Override
+            public void onBeginOfSpeech() {
+                showTip("speech start!");
+
+            }
+
+            @Override
+            public void onEndOfSpeech() {
+
+            }
+
+            @Override
+            public void onResult(com.iflytek.cloud.RecognizerResult recognizerResult, boolean isLast) {
+                String json = recognizerResult.getResultString();
+//                Log.d(TAG, "speech result is " + json);
+                String ret = parseJson(json);
+
+                Log.d(TAG, "res >> " + ret);
+
+                callback.onProcessResult(ret);
+
+//                buffer.append(ret);
+//                if (isLast) {
+//                    callback.onProcessResult(buffer.toString());
+//                    buffer.delete(0, buffer.length());
+//                }
             }
 
             @Override
@@ -361,14 +532,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         BusManager.getUiBus().register(this);
-        BusManager.getDeufaultBus().register(this);
+        BusManager.getDefaultBus().register(this);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         BusManager.getUiBus().unregister(this);
-        BusManager.getDeufaultBus().unregister(this);
+        BusManager.getDefaultBus().unregister(this);
     }
 
     interface RetCallback {

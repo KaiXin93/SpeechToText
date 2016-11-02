@@ -15,9 +15,9 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-
         <View style="@style/divider" />
 
+        <!--OCR-->
         <TextView
             android:id="@+id/title2"
             style="@style/title"
@@ -33,6 +33,7 @@
 
         <View style="@style/divider" />
 
+        <!--实时翻译-->
         <TextView
             android:id="@+id/title3"
             style="@style/title"
@@ -40,31 +41,107 @@
             android:layout_height="wrap_content"
             android:text="实时翻译" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="20dp"
+                android:text="静音超时(ms)" />
+
+            <Spinner
+                android:id="@+id/spinner_bos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="20dp"
+                android:text="说话超时(ms)" />
+
+            <Spinner
+                android:id="@+id/spinner_eos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
         <Button
-            android:id="@+id/btn_doAll"
+            android:id="@+id/btn_rt_start_record"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="开始记录" />
+
+        <Button
+            android:id="@+id/btn_rt_stop_record"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="停止记录" />
+
+        <TextView
+            android:id="@+id/tv_rt_record_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/btn_rt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="中文->英文" />
 
         <TextView
-            android:id="@+id/tv_doAll"
+            android:id="@+id/tv_rt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="中文->英文" />
 
         <Button
-            android:id="@+id/btn_doAll_en"
+            android:id="@+id/btn_rt_en"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="英文->中文" />
 
         <TextView
-            android:id="@+id/tv_doAll_en"
+            android:id="@+id/tv_rt_en"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="英文->中文" />
 
         <View style="@style/divider" />
+
+        <!--同声-->
+        <TextView
+            android:id="@+id/title4"
+            style="@style/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="同声翻译" />
+
+        <Button
+            android:id="@+id/btn_syc_start_record"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="开始记录" />
+
+        <Button
+            android:id="@+id/btn_syc_stop_record"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="停止记录" />
+
+        <TextView
+            android:id="@+id/tv_syc_record_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <Button
             android:id="@+id/btn_speak_syc"
@@ -86,54 +163,13 @@
 
         <View style="@style/divider" />
 
+        <!--同声切换-->
         <TextView
-            android:id="@+id/title1"
+            android:id="@+id/title5"
             style="@style/title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/title" />
-
-        <Button
-            android:id="@+id/btn_talk"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="普通话识别" />
-
-        <Button
-            android:id="@+id/btn_translate"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="中英文翻译" />
-
-        <Button
-            android:id="@+id/btn_speak"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="英文发声" />
-
-        <TextView
-            style="@style/hint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="识别结果:" />
-
-        <TextView
-            android:id="@+id/tv_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <TextView
-            style="@style/hint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="翻译结果:" />
-
-        <TextView
-            android:id="@+id/tv_translation"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <View style="@style/divider" />
+            android:text="同声切换" />
 
         <Button
             android:id="@+id/btn_speak_transfer"
@@ -152,6 +188,80 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="翻译" />
+
+        <View style="@style/divider" />
+
+        <TextView
+            android:id="@+id/title6"
+            style="@style/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="测试发声" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="20dp"
+                android:text="设置发音" />
+
+            <Spinner
+                android:id="@+id/spinner_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="20dp"
+                android:text="设置语速" />
+
+            <Spinner
+                android:id="@+id/spinner_speed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="20dp"
+                android:text="设置音量" />
+
+            <Spinner
+                android:id="@+id/spinner_volume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/edt_test_voice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="测试文字"
+            android:text="你好" />
+
+        <Button
+            android:id="@+id/btn_test_voice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="测试发音" />
+
     </LinearLayout>
 
 </ScrollView>

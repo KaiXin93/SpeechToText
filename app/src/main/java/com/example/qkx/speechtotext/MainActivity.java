@@ -5,11 +5,17 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.qkx.speechtotext.model.ResultBean;
 import com.example.qkx.speechtotext.rest.RestSource;
+import com.example.qkx.speechtotext.utils.FileUtil;
 import com.iflytek.cloud.ErrorCode;
 import com.iflytek.cloud.InitListener;
 import com.iflytek.cloud.SpeechConstant;
@@ -19,12 +25,12 @@ import com.iflytek.cloud.SpeechSynthesizer;
 import com.iflytek.cloud.SpeechUtility;
 import com.iflytek.cloud.SynthesizerListener;
 
-import org.greenrobot.eventbus.Subscribe;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
@@ -40,33 +46,45 @@ public class MainActivity extends AppCompatActivity {
     private static final int MODE_CH = 0;
     private static final int MODE_EN = 1;
 
-    private RestSource mRestSource;
-
     private int currentMode = MODE_CH;
 
-    @Bind(R.id.tv_text)
-    TextView tvText;
+    private RestSource mRestSource;
 
-    @Bind(R.id.tv_translation)
-    TextView tvTranslation;
-
-    @Bind(R.id.tv_doAll)
-    TextView tvDoAll;
-
-    @Bind(R.id.tv_doAll_en)
-    TextView tvDoAllEn;
+    @Bind(R.id.tv_rt)
+    TextView tvRt;
+    @Bind(R.id.tv_rt_en)
+    TextView tvRtEn;
 
     @Bind(R.id.tv_res_syc)
     TextView tvResSyc;
-
     @Bind(R.id.tv_translation_syc)
     TextView tvTranslationSyc;
 
     @Bind(R.id.tv_res_transfer)
     TextView tvResTransfer;
-
     @Bind(R.id.tv_translation_transfer)
     TextView tvTranslationTransfer;
+
+    @Bind(R.id.spinner_name)
+    Spinner mSpinnerName;
+    @Bind(R.id.spinner_speed)
+    Spinner mSpinnerSpeed;
+    @Bind(R.id.spinner_volume)
+    Spinner mSpinnerVolume;
+
+    @Bind(R.id.spinner_bos)
+    Spinner mSpinnerBos;
+    @Bind(R.id.spinner_eos)
+    Spinner mSpinnerEos;
+
+    @Bind(R.id.edt_test_voice)
+    EditText edtTest;
+
+    @Bind(R.id.tv_rt_record_hint)
+    TextView tvRtRecordHint;
+
+    @Bind(R.id.tv_syc_record_hint)
+    TextView tvSycRecordHint;
 
     private StringBuffer buffer = new StringBuffer();
     /**
@@ -79,23 +97,44 @@ public class MainActivity extends AppCompatActivity {
     private String mEngineType = SpeechConstant.TYPE_CLOUD;
     private SynthesizerListener mSynListener;
 
+    private String[] mVoiceDisplayNames = new String[]{"青年女声(小燕)", "青年男声(小峰)", "中年男声(老孙)", "女声播音员(小筠)"};
+    private String[] mVoiceNames = new String[]{"xiaoyan", "xiaofeng", "vils", "aisjying"};
+    private String[] mSpeeds = new String[]{"10", "20", "30", "40", "50", "60", "70", "80", "90", "100"};
+    private String[] mVolumes = new String[]{"10", "20", "30", "40", "50", "60", "70", "80", "90", "100"};
+
+    private String mDefaultName = "xiaoyan";
+    private String mDefaultSpeed = "50";
+    private String mDefaultVolume = "80";
+
+    private String[] mBosTimes = new String[]{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+    private String[] mBosTimeMillis = new String[]{"1000", "2000", "3000", "4000", "5000", "6000", "7000",
+            "8000", "9000", "10000"};
+
+    private String[] mEosTimes = new String[]{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+    private String[] mEosTimeMillis = new String[]{"1000", "2000", "3000", "4000", "5000", "6000", "7000",
+            "8000", "9000", "10000"};
+
+    private String mDefaultAvdBosMillis = "4000";
+    private String mDefaultAvdEosMillis = "1000";
+
+    int ret = 0; //函数返回值
+
+    private String mRtRecordPath = null;
+    private String mSycRecordPath = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        init();
-
         ButterKnife.bind(this);
+
+        init();
     }
 
     private void init() {
         SpeechUtility.createUtility(MainActivity.this, SpeechConstant.APPID + "=" + Constants.APPID);
         mIat = SpeechRecognizer.createRecognizer(MainActivity.this, mInitListener);
-
-        tvText = (TextView) findViewById(R.id.tv_text);
-        tvTranslation = (TextView) findViewById(R.id.tv_translation);
-
 
         mToast = Toast.makeText(MainActivity.this, "", Toast.LENGTH_SHORT);
 
@@ -134,6 +173,146 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        setupSpinner();
+
+    }
+
+    private void setupSpinner() {
+        // 发音人
+        ArrayAdapter<String> adapterVoiceName = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, mVoiceDisplayNames);
+        adapterVoiceName.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerName.setAdapter(adapterVoiceName);
+        mSpinnerName.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                mDefaultName = mVoiceNames[position];
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        // 语速
+        ArrayAdapter<String> adapterSpeed = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, mSpeeds);
+        adapterSpeed.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerSpeed.setAdapter(adapterSpeed);
+        mSpinnerSpeed.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                mDefaultSpeed = mSpeeds[position];
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+        mSpinnerSpeed.setSelection(4);
+
+        // 音量
+        ArrayAdapter<String> adapterVolume = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, mVolumes);
+        adapterVolume.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerVolume.setAdapter(adapterVolume);
+        mSpinnerVolume.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                mDefaultVolume = mVolumes[position];
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+        mSpinnerVolume.setSelection(7);
+
+        // 静音超时
+        ArrayAdapter<String> adapterBos = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, mBosTimes);
+        adapterBos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerBos.setAdapter(adapterBos);
+        mSpinnerBos.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                mDefaultAvdBosMillis = mBosTimeMillis[position];
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+        mSpinnerBos.setSelection(3);
+
+        // 说话超时
+        ArrayAdapter<String> adapterEos = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, mEosTimes);
+        adapterEos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerEos.setAdapter(adapterEos);
+        mSpinnerEos.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                mDefaultAvdEosMillis = mEosTimeMillis[position];
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+        mSpinnerEos.setSelection(0);
+
+    }
+
+    @OnClick(R.id.btn_syc_start_record)
+    void startSycRecord() {
+        String fileDir = Environment.getExternalStorageDirectory().getPath() + "/record/同声翻译";
+        File dir = new File(fileDir);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String date = FileUtil.getCurrentDate();
+        mSycRecordPath = fileDir + "/" + date + ".txt";
+        String header = date + "\n\n ";
+        FileUtil.addStringToFile(header, mSycRecordPath);
+        tvSycRecordHint.setText(String.format("开始记录，记录保存至%s", mSycRecordPath));
+    }
+
+    @OnClick(R.id.btn_syc_stop_record)
+    void stopSycRecord() {
+        if (mSycRecordPath != null) {
+            tvSycRecordHint.setText(String.format("停止记录，记录保存至%s", mSycRecordPath));
+            mSycRecordPath = null;
+        }
+    }
+
+    @OnClick(R.id.btn_rt_start_record)
+    void startRtRecord() {
+        String fileDir = Environment.getExternalStorageDirectory().getPath() + "/record/实时翻译";
+        File dir = new File(fileDir);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String date = FileUtil.getCurrentDate();
+        mRtRecordPath = fileDir + "/" + date + ".txt";
+        String header = date + "\n\n";
+        FileUtil.addStringToFile(header, mRtRecordPath);
+        tvRtRecordHint.setText(String.format("开始记录，记录保存至%s", mRtRecordPath));
+    }
+
+    @OnClick(R.id.btn_rt_stop_record)
+    void stopRtRecord() {
+        if (mRtRecordPath != null) {
+            tvRtRecordHint.setText(String.format("停止记录，记录保存至%s", mRtRecordPath));
+            mRtRecordPath = null;
+        }
     }
 
     @OnClick(R.id.btn_orc)
@@ -142,20 +321,28 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    @OnClick(R.id.btn_speak)
-    void doSpeak() {
-        String str = tvTranslation.getText().toString();
-        speak(str);
+
+    @OnClick(R.id.btn_test_voice)
+    void testVoice() {
+//        String str = "你好";
+        String str = edtTest.getText().toString();
+        if (str.length() == 0) return;
+
+        speak(str, mDefaultName, mDefaultSpeed, mDefaultVolume);
     }
 
     private void speak(String str) {
+        speak(str, "xiaoyan", "50", "80");
+    }
+
+    private void speak(String str, String voiceName, String speed, String volume) {
         //1.创建 SpeechSynthesizer 对象, 第二个参数:本地合成时传 InitListener
         SpeechSynthesizer mTts = SpeechSynthesizer.createSynthesizer(this, null);
         //2.合成参数设置,详见《MSC Reference Manual》SpeechSynthesizer 类
         //设置发音人(更多在线发音人,用户可参见 附录13.2
-        mTts.setParameter(SpeechConstant.VOICE_NAME, "xiaoyan"); //设置发音人
-        mTts.setParameter(SpeechConstant.SPEED, "50");//设置语速
-        mTts.setParameter(SpeechConstant.VOLUME, "80");//设置音量,范围 0~100
+        mTts.setParameter(SpeechConstant.VOICE_NAME, voiceName); //设置发音人
+        mTts.setParameter(SpeechConstant.SPEED, speed);//设置语速
+        mTts.setParameter(SpeechConstant.VOLUME, volume);//设置音量,范围 0~100
         mTts.setParameter(SpeechConstant.ENGINE_TYPE, SpeechConstant.TYPE_CLOUD); //设置云端
         //设置合成音频保存位置(可自定义保存位置),保存在“./sdcard/iflytek.pcm”
         //保存在 SD 卡需要在 AndroidManifest.xml 添加写 SD 卡权限
@@ -164,20 +351,6 @@ public class MainActivity extends AppCompatActivity {
         //3.开始合成
 //        mTts.startSpeaking("科大讯飞,让世界聆听我们的声音", mSynListener);
         mTts.startSpeaking(str, mSynListener);
-    }
-
-    @OnClick(R.id.btn_translate)
-    void doTranslate() {
-        String q = tvText.getText().toString();
-
-        translateEn(q, new TranslateCallback() {
-            @Override
-            public void onProcessResult(ResultBean resultBean) {
-                System.out.println("onProcessResultBean!");
-                String res = resultBean.trans_result.get(0).dst;
-                tvTranslation.setText(res);
-            }
-        });
     }
 
     private void translateEn(String q, TranslateCallback callback) {
@@ -190,33 +363,28 @@ public class MainActivity extends AppCompatActivity {
         mRestSource.queryCh(q, callback);
     }
 
-    int ret = 0; //函数返回值
-
-    @OnClick(R.id.btn_talk)
-    void talk() {
+    @OnClick(R.id.btn_rt)
+    void rtTrans() {
         speechToTextCh(new RetCallback() {
             @Override
             public void onProcessResult(String result) {
-                tvText.setText(result);
-            }
-        });
-    }
-
-    @OnClick(R.id.btn_doAll)
-    void doAll() {
-        speechToTextCh(new RetCallback() {
-            @Override
-            public void onProcessResult(String result) {
-                tvDoAll.setText(result);
+                tvRt.setText(result);
 
                 translateEn(result, new TranslateCallback() {
                     @Override
                     public void onProcessResult(ResultBean resultBean) {
-                        String origin = tvDoAll.getText().toString();
+                        String origin = tvRt.getText().toString();
                         String res = resultBean.trans_result.get(0).dst;
-                        tvDoAll.setText(origin + '\n' + res);
+                        String data = origin + '\n' + res;
+
+                        tvRt.setText(data);
 
                         speak(res);
+
+                        // 保存记录
+                        if (mRtRecordPath != null) {
+                            FileUtil.addStringToFile(data + "\n\n", mRtRecordPath);
+                        }
                     }
                 });
 
@@ -224,21 +392,28 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    @OnClick(R.id.btn_doAll_en)
-    void doAllEn() {
+    @OnClick(R.id.btn_rt_en)
+    void rtTransEn() {
         speechToTextEn(new RetCallback() {
             @Override
             public void onProcessResult(String result) {
-                tvDoAllEn.setText(result);
+                tvRtEn.setText(result);
 
                 translateCh(result, new TranslateCallback() {
                     @Override
                     public void onProcessResult(ResultBean resultBean) {
-                        String origin = tvDoAllEn.getText().toString();
+                        String origin = tvRtEn.getText().toString();
                         String res = resultBean.trans_result.get(0).dst;
-                        tvDoAllEn.setText(origin + '\n' + res);
+                        String data = origin + '\n' + res;
+
+                        tvRtEn.setText(data);
 
                         speak(res);
+
+                        // 保存记录
+                        if (mRtRecordPath != null) {
+                            FileUtil.addStringToFile(data + "\n\n", mRtRecordPath);
+                        }
                     }
                 });
             }
@@ -258,8 +433,23 @@ public class MainActivity extends AppCompatActivity {
                 mRestSource.queryEn(result, new TranslateCallback() {
                     @Override
                     public void onProcessResult(ResultBean resultBean) {
-                        String or = tvTranslationSyc.getText().toString();
-                        tvTranslationSyc.setText(or + resultBean.trans_result.get(0).dst);
+                        if (resultBean.trans_result == null ||
+                                resultBean.trans_result.size() == 0) return;
+
+                        ResultBean.TransResult transResult = resultBean.trans_result.get(0);
+                        String src = transResult.src;
+                        String dst = transResult.dst;
+
+                        String origin = tvTranslationSyc.getText().toString();
+                        tvTranslationSyc.setText(origin + dst);
+
+                        if (mSycRecordPath != null) {
+                            src = src.replace('，', ' ');
+                            dst = dst.replace(',', ' ');
+                            FileUtil.addStringToFile(String.format("%s\n%s\n\n", src, dst),
+                                    mSycRecordPath);
+                        }
+
                     }
                 });
 
@@ -271,9 +461,10 @@ public class MainActivity extends AppCompatActivity {
     void speakTransfer() {
         tvResTransfer.setText("");
         tvTranslationTransfer.setText("");
+
         switch (currentMode) {
             case MODE_CH:
-                showTip("请说中文!");
+                Toast.makeText(this, "请说中文!", Toast.LENGTH_LONG).show();
                 currentMode = MODE_EN;
                 speechToTextSyc(new RetCallback() {
                     @Override
@@ -284,15 +475,19 @@ public class MainActivity extends AppCompatActivity {
                         mRestSource.queryEn(result, new TranslateCallback() {
                             @Override
                             public void onProcessResult(ResultBean resultBean) {
+                                if (resultBean.trans_result == null ||
+                                        resultBean.trans_result.size() == 0) return;
+
                                 String or = tvTranslationTransfer.getText().toString();
-                                tvTranslationTransfer.setText(or + resultBean.trans_result.get(0).dst);
+                                ResultBean.TransResult transResult = resultBean.trans_result.get(0);
+                                tvTranslationTransfer.setText(or + transResult.dst);
                             }
                         });
                     }
                 }, "zh_cn");
                 break;
             case MODE_EN:
-                showTip("请说英文!");
+                Toast.makeText(this, "请说英文!", Toast.LENGTH_LONG).show();
                 currentMode = MODE_CH;
                 speechToTextSyc(new RetCallback() {
                     @Override
@@ -303,21 +498,18 @@ public class MainActivity extends AppCompatActivity {
                         mRestSource.queryCh(result, new TranslateCallback() {
                             @Override
                             public void onProcessResult(ResultBean resultBean) {
+                                if (resultBean.trans_result == null ||
+                                        resultBean.trans_result.size() == 0) return;
+
                                 String or = tvTranslationTransfer.getText().toString();
-                                tvTranslationTransfer.setText(or + resultBean.trans_result.get(0).dst);
+                                ResultBean.TransResult transResult = resultBean.trans_result.get(0);
+                                tvTranslationTransfer.setText(or + transResult.dst);
                             }
                         });
                     }
                 }, "en_us");
                 break;
         }
-    }
-
-    @Subscribe
-    public void onEventMainThread(ResultBean bean) {
-        System.out.println("onMainThread!");
-        String res = bean.trans_result.get(0).dst;
-        tvTranslation.setText(res);
     }
 
     private void stopListening() {
@@ -327,14 +519,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void speechToTextEn(RetCallback callback) {
-        speechToTextNormal(callback, "en_us");
+        speechToText(callback, "en_us");
     }
 
     private void speechToTextCh(RetCallback callback) {
-        speechToTextNormal(callback, "zh_cn");
+        speechToText(callback, "zh_cn");
     }
 
-    private void speechToTextNormal(final RetCallback callback, String language) {
+    private void speechToText(final RetCallback callback, String language) {
+//        speechToText(callback, language, "4000", "1000");
+        speechToText(callback, language, mDefaultAvdBosMillis, mDefaultAvdEosMillis);
+    }
+
+    /**
+     * 识别结束后整段文本处理
+     *
+     * @param callback     结果回调接口
+     * @param language     语言种类
+     * @param avdBosMillis 说话未开始时的超时时间
+     * @param avdEosMillis 说话停止后的超时时间
+     */
+    private void speechToText(final RetCallback callback, String language, String avdBosMillis, String avdEosMillis) {
         mIat.setParameter(SpeechConstant.DOMAIN, "iat");
         mIat.setParameter(SpeechConstant.LANGUAGE, language);
         if (language.equals("zh_cn")) {
@@ -344,10 +549,10 @@ public class MainActivity extends AppCompatActivity {
         mIat.setParameter(SpeechConstant.ENGINE_TYPE, mEngineType);
 
         // 设置语音前端点:静音超时时间，即用户多长时间不说话则当做超时处理
-        mIat.setParameter(SpeechConstant.VAD_BOS, "4000");
+        mIat.setParameter(SpeechConstant.VAD_BOS, avdBosMillis);
 
         // 设置语音后端点:后端点静音检测时间，即用户停止说话多长时间内即认为不再输入， 自动停止录音
-        mIat.setParameter(SpeechConstant.VAD_EOS, "1000");
+        mIat.setParameter(SpeechConstant.VAD_EOS, avdEosMillis);
 
         // 设置标点符号,设置为"0"返回结果无标点,设置为"1"返回结果有标点
         mIat.setParameter(SpeechConstant.ASR_PTT, "1");
@@ -378,7 +583,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResult(com.iflytek.cloud.RecognizerResult recognizerResult, boolean isLast) {
                 String json = recognizerResult.getResultString();
-                Log.d(TAG, "speech result >> " + json);
+//                Log.d(TAG, "speech result >> " + json);
                 String ret = parseJson(json);
 
                 Log.d(TAG, "outcome >> " + ret);
@@ -402,6 +607,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
         if (ret != ErrorCode.SUCCESS) {
             showTip("听写失败,错误码：" + ret);
         } else {
@@ -411,6 +617,12 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * 分段文本处理
+     *
+     * @param callback 结果回调接口
+     * @param language 语言种类
+     */
     private void speechToTextSyc(final RetCallback callback, String language) {
         mIat.setParameter(SpeechConstant.DOMAIN, "iat");
         mIat.setParameter(SpeechConstant.LANGUAGE, language);
@@ -455,18 +667,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResult(com.iflytek.cloud.RecognizerResult recognizerResult, boolean isLast) {
                 String json = recognizerResult.getResultString();
-//                Log.d(TAG, "speech result is " + json);
                 String ret = parseJson(json);
 
                 Log.d(TAG, "res >> " + ret);
-
                 callback.onProcessResult(ret);
-
-//                buffer.append(ret);
-//                if (isLast) {
-//                    callback.onProcessResult(buffer.toString());
-//                    buffer.delete(0, buffer.length());
-//                }
             }
 
             @Override
@@ -531,15 +735,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        BusManager.getUiBus().register(this);
-        BusManager.getDefaultBus().register(this);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        BusManager.getUiBus().unregister(this);
-        BusManager.getDefaultBus().unregister(this);
     }
 
     interface RetCallback {
